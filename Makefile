@@ -1,8 +1,10 @@
+CC=gcc
 AS=nasm
 LD=ld
 DBG=gdb
 DIS=objdump
 SRC=src
+UTILS=$(SRC)/utils
 BUILD=build
 PROG=$(BUILD)/ab
 OBJ=$(BUILD)/vpn.o
@@ -16,6 +18,8 @@ $(BUILD):
 	if ! [ -d $(BUILD) ]; then		\
 		mkdir $(BUILD);			\
 	fi
+tuns: $(UTILS)/tuns.c
+	$(CC) -S -o $@.s $< -masm=intel -fno-asynchronous-unwind-tables
 debug: $(SRS) $(BUILD)
 	$(AS) -f elf64 -o $(OBJ) $< -g
 	$(LD) -o $(PROG) $(OBJ)
@@ -24,3 +28,4 @@ dump: $(PROG)
 	$(DIS) -d $< 
 clean:
 	rm -rf $(BUILD)
+	rm -rf *.s

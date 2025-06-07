@@ -1,0 +1,17 @@
+Struct ifreq format in assembly:
+
+
+                      16 Name Bits
+                           |
+    _______________________________________________
+    |                                             |
+    |                                             |
+    | 0     0     0     0     0     0     0     0 |
+    | 0     0     0     0     0     0     0     0 |
+      0     0     0     0     0     0     0     0
+      0     0     0     0     0     0     0     0
+      0     0     0     0     0     0     0     0
+
+
+Bits 16-19 are to be used for a sa_family_t word in the case of a call to SIOCSIFFlAGS (first field of struct sockaddr)
+Bits 20-31 are to be used for the actual inet address, specified as each number being placed in a single byte-space (NOT with db "") (second field of struct sockaddr)

@@ -121,13 +121,16 @@ zero_ifr:
 	mov	rsp, rbp
 	pop	rbp
 	ret
-tunup:
+bring_up_tun:
 	;bring up new tun interface
 	push	rbp
 	mov	rbp, rsp
 	xor	rax, rax
+	xor	rcx, rcx
+	xor	rdx, rdx
 	xor	rdi, rdi
 	xor	rsi, rsi
+	xor	r8, r8
 	mov	esi, [tuntitle]
 	mov	dword [ifr], esi
 	mov	byte [ifr+16], IFF_TUN
@@ -138,35 +141,21 @@ tunup:
 	syscall
 	cmp	rax, 0
 	jl	error
+	xor	rax, rax
 	mov	al, 16
 	mov	dil, [sockfd]
 	mov	byte [ifr+16], 0x01
 	mov	esi, SIOCSIFFLAGS
-	mov	edx, ifr
 	syscall
 	cmp	rax, 0
 	jl	error
-	mov	rsp, rbp
-	pop	rbp
-	ret
-tunaddr:
-	;set tun interface address and netmask
-	push	rbp
-	mov	rbp, rsp
-	xor	rax, rax
-	xor	rdi, rdi
-	xor	rsi, rsi
-	xor	rcx, rcx
-	xor	rdx, rdx
-	xor	r8, r8
-	;zero out the union chunk of the ifreq
+	; set tun interface address and netmask
 	call	zero_ifr
-	;set address family word BEFORE inet addr
+	; set address family word BEFORE inet addr
 	mov	word [ifr+16], AF_INET
-	;prepare registers to feed the inet addr into the offset ifreq chunk
+	; prepare registers to feed the inet addr into the offset ifreq chunk
 	mov	eax, tuniaddr
-	mov	ebx, ifr
-	add	ebx, 20
+	mov	ebx, ifr+20
 	mov	ecx, tuniaddrsz
 	tunaddrl:
 	mov	r8b, [eax]
@@ -188,8 +177,7 @@ tunaddr:
 	; set if netmask
 	call	zero_ifr
 	mov	eax, tunnetmask
-	mov	ebx, ifr
-	add	ebx, 20
+	mov	ebx, ifr+20
 	mov	ecx, tuniaddrsz
 	mov	word [ifr+16], AF_INET
 	tunmaskl:
@@ -204,9 +192,9 @@ tunaddr:
 	xor	eax, eax
 	mov	al, 16
 	mov	esi, SIOCSIFNETMASK
+	syscall
 	cmp	rax, 0
 	jl	error
-	syscall
 	mov	rsp, rbp
 	pop	rbp
 	ret
@@ -226,8 +214,7 @@ _start:
 	cmp	rax, 0
 	jl	error
 	mov	[sockfd], al
-	call 	tunup
-	call	tunaddr
+	call 	bring_up_tun
 	jmp	exit
 error:
 	call	reperr

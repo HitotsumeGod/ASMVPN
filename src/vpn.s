@@ -1,19 +1,44 @@
 ; IMPORTANT NOTES
 section		.data
+	IFNAMSIZ		equ 16
+	IFRSZ			equ 40
+	RTENTSZ			equ 120
+	ifr:
+		ifr_name		times IFNAMSIZ db 0
+		ifr_ifru		times IFRSZ-IFNAMSIZ db 0
+	rtentry:
+		rt_pad1			times 8 db 0
+		rt_dst			times 16 db 0
+		rt_gateway		times 16 db 0
+		rt_genmask		times 16 db 0
+		rt_flags		times 2 db 0
+		rt_pad2			times 2 db 0
+		implicit1		times 4 db 0
+		rt_pad3			times 8 db 0
+		rt_tos			db 0
+		rt_class		db 0
+		rt_pad4			times 3 dw 0
+		rt_metric		times 2 db 0
+		implicit2		times 6 db 0
+		rt_dev			times 8 db 0
+		rt_mtu			times 8 db 0
+		rt_window		times 8 db 0
+		rt_irtt			times 2 db 0
+		implicit3		times 6 db 0
 	errmsg			db "An error occurred!", 0x0A
-	errmsgsz		equ $-errmsg
+	ERRMSGSZ		equ $-errmsg
 	tunfpath		db "/dev/net/tun", 0x00
-	tuniaddr		db 192, 168, 4, 174
+	tunaddr			db 10, 16, 0, 1
+	TUNADDRSZ		equ $-tunaddr
 	tunnetmask		db 255, 255, 255, 0
-	tuniaddrsz		equ 4
-	tuntitle		dd "tun8"
-	ifr			times 40 db 0
+	tuntitle		db "tun8", 0x00
 	AF_INET			equ 2
 	AF_INET6		equ 10
 	SOCK_STREAM		equ 1
 	SOCK_DGRAM		equ 2
 	SOCK_RAW		equ 3
 	IFF_TUN			equ 0x0001
+	INADDR_ANY		equ 0x00000000
 	SIOCADDRT		equ 0x890B
 	SIOCDELRT		equ 0x890C
 	SIOCRTMSG		equ 0x890D
@@ -79,7 +104,6 @@ section		.data
 	TUNSETFILTEREBPF	equ -2147199775
 	TUNSETCARRIER		equ 1074025698
 	TUNGETDEVNETNS		equ 21731
-	IFNAMSIZ		equ 16
 section		.bss
 	tunfd		resb 1
 	sockfd		resb 1
@@ -100,7 +124,7 @@ reperr:
 	inc	al
 	inc	dil
 	mov	esi, errmsg
-	mov	dl, errmsgsz
+	mov	dl, ERRMSGSZ
 	syscall
 	jmp	exit
 zero_ifr:
@@ -111,13 +135,13 @@ zero_ifr:
 	mov	eax, ifr
 	add	eax, 16
 	mov	ecx, 24
-	zifrl:
+.loop:
 	mov	byte [eax], 0x00
 	inc	eax
 	dec	ecx
-	jz	zifrend
-	jmp	zifrl
-	zifrend:
+	jz	.close
+	jmp	.loop
+.close:
 	mov	rsp, rbp
 	pop	rbp
 	ret
@@ -132,8 +156,8 @@ bring_up_tun:
 	xor	rsi, rsi
 	xor	r8, r8
 	mov	esi, [tuntitle]
-	mov	dword [ifr], esi
-	mov	byte [ifr+16], IFF_TUN
+	mov	dword [ifr_name], esi
+	mov	byte [ifr_ifru], IFF_TUN
 	mov	al, 16
 	mov	dil, [tunfd]
 	mov	esi, TUNSETIFF
@@ -144,7 +168,7 @@ bring_up_tun:
 	xor	rax, rax
 	mov	al, 16
 	mov	dil, [sockfd]
-	mov	byte [ifr+16], 0x01
+	mov	byte [ifr_ifru], 0x01
 	mov	esi, SIOCSIFFLAGS
 	syscall
 	cmp	rax, 0
@@ -152,20 +176,20 @@ bring_up_tun:
 	; set tun interface address and netmask
 	call	zero_ifr
 	; set address family word BEFORE inet addr
-	mov	word [ifr+16], AF_INET
+	mov	word [ifr_ifru], AF_INET
 	; prepare registers to feed the inet addr into the offset ifreq chunk
-	mov	eax, tuniaddr
-	mov	ebx, ifr+20
-	mov	ecx, tuniaddrsz
-	tunaddrl:
+	mov	eax, tunaddr
+	mov	ebx, ifr_ifru+4
+	mov	ecx, TUNADDRSZ
+.loop:
 	mov	r8b, [eax]
 	mov	byte [ebx], r8b
 	inc 	eax
 	inc	ebx
 	dec	ecx
-	jz	tunaddrcl
-	jmp	tunaddrl
-	tunaddrcl:
+	jz	.close
+	jmp	.loop
+.close:
 	xor	eax, eax
 	mov	al, 16
 	mov	dil, [sockfd]
@@ -177,23 +201,73 @@ bring_up_tun:
 	; set if netmask
 	call	zero_ifr
 	mov	eax, tunnetmask
-	mov	ebx, ifr+20
-	mov	ecx, tuniaddrsz
-	mov	word [ifr+16], AF_INET
-	tunmaskl:
+	mov	ebx, ifr_ifru+4
+	mov	ecx, TUNADDRSZ
+	mov	word [ifr_ifru], AF_INET
+.loop2:
 	mov	r8b, [eax]
 	mov	byte [ebx], r8b
 	inc	eax
 	inc	ebx
 	dec	ecx
-	jz	tunmaskcl
-	jmp	tunmaskl
-	tunmaskcl:
+	jz	.close2
+	jmp	.loop2
+.close2:
 	xor	eax, eax
 	mov	al, 16
 	mov	esi, SIOCSIFNETMASK
 	syscall
 	cmp	rax, 0
+	jl	error
+	mov	rsp, rbp
+	pop	rbp
+	ret
+set_routes:
+	;perform a call to SIOCADDRT, routing all network traffic through the tunnel
+	push	rbp
+	mov	rbp, rsp
+	xor	rax, rax
+	xor	rcx, rcx
+	xor	rdx, rdx
+	xor	rdi, rdi
+	xor	rsi, rsi
+	xor	r8, r8
+	mov	word [rt_dst], AF_INET
+	mov	word [rt_gateway], AF_INET
+	mov	word [rt_genmask], AF_INET
+	mov	eax, tunaddr
+	mov	ebx, rt_gateway+4
+	mov	ecx, TUNADDRSZ
+.loop:
+	mov	r8b, [eax]
+	mov	byte [ebx], r8b
+	inc	eax
+	inc	ebx
+	dec	ecx
+	jz	.close
+	jmp	.loop
+.close:
+	mov	eax, tunnetmask
+	mov	ebx, rt_genmask+4
+	mov	ecx, TUNADDRSZ
+.loop2:
+	mov	r8b, [eax]
+	mov	byte [ebx], r8b
+	inc	eax
+	inc	ebx
+	dec	ecx
+	jz	.close2
+	jmp	.loop2
+.close2:
+	mov	word [rt_flags], 0x01|0x02
+	mov	qword [rt_dev], tuntitle
+	xor	rax, rax
+	mov	al, 16
+	mov	dil, [sockfd]
+	mov	esi, SIOCADDRT
+	mov	edx, rtentry
+	syscall
+	cmp	rax, 0x00
 	jl	error
 	mov	rsp, rbp
 	pop	rbp
@@ -215,6 +289,13 @@ _start:
 	jl	error
 	mov	[sockfd], al
 	call 	bring_up_tun
+	call	set_routes
+	;suspend program execution to check results
+	xor	rax, rax
+	xor	rdi, rdi
+	mov	rsi, tuntitle
+	mov	rdx, 10
+	syscall
 	jmp	exit
 error:
 	call	reperr

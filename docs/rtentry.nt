@@ -1,0 +1,24 @@
+Composition of C struct rtentry, needed for routing table modifications calls via ioctl()
+
+Total Size = 120 Bytes
+
+Bytes 0 - 7 = rt_pad1
+Bytes 8 - 23 = rt_dst
+Bytes 24 - 39 = rt_gateway
+Bytes 40 - 55 = rt_genmask
+Bytes 56 - 61 = COMPPAD
+Bytes 62 - 63 = rt_flags
+Bytes 64 - 65 = rt_pad2
+Bytes 66 - 73 = rt_pad3
+Bytes 74 - 91 = COMPPAD
+Byte 92 = rt_tos
+Byte 93 = rt_class
+Bytes 94 - 95 = rt_pad4[0]
+Bytes 96 - 97 = rt_pad4[1]
+Bytes 98 - 99 = rt_pad4[2]
+Bytes 100 - 101 = rt_metric
+Bytes 102 - 109 = rt_dev
+Bytes 110 - 117 = rt_mtu
+Bytes 118 - 125 = rt_window
+Bytes 126 - 131 = COMPPAD
+Bytes 132 - 133 = rt_irtt

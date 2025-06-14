@@ -3,6 +3,9 @@ AS=nasm
 LD=ld
 DBG=gdb
 DIS=objdump
+CPY=objcopy
+X=xxd
+GR=grep
 SRC=src
 UTILS=$(SRC)/utils
 BUILD=build
@@ -26,6 +29,9 @@ debug: $(SRS) $(BUILD)
 	$(DBG) $(PROG)
 dump: $(PROG)
 	$(DIS) -d $< 
+bdump: $(PROG)
+	$(CPY) -j .text $^ $(BUILD)/text.bin
+	$(X) -b $(BUILD)/text.bin | $(GR) -v "00000000 00000000 00000000 00000000 00000000 00000000" 
 clean:
 	rm -rf $(BUILD)
 	rm -rf *.s

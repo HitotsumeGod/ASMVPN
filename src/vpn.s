@@ -1,8 +1,78 @@
-; IMPORTANT NOTES
+%define IFNAMSIZ		16
+%define	IFRSZ			40
+%define	AF_INET			2
+%define	AF_INET6		10
+%define	SOCK_STREAM		1
+%define	SOCK_DGRAM		2
+%define	SOCK_RAW		3
+%define	IFF_TUN			0x0001
+%define	INADDR_ANY		0x00000000
+%define	SIOCADDRT		0x890B
+%define	SIOCDELRT		0x890C
+%define	SIOCRTMSG		0x890D
+%define	SIOCGIFNAME		0x8910
+%define	SIOCSIFLINK		0x8911
+%define	SIOCGIFCONF		0x8912
+%define	SIOCGIFFLAGS    	0x8913
+%define	SIOCSIFFLAGS    	0x8914
+%define	SIOCGIFADDR     	0x8915
+%define	SIOCSIFADDR     	0x8916
+%define	SIOCGIFDSTADDR  	0x8917
+%define	SIOCSIFDSTADDR  	0x8918
+%define	SIOCGIFBRDADDR  	0x8919
+%define	SIOCSIFBRDADDR  	0x891A
+%define	SIOCGIFNETMASK  	0x891B
+%define	SIOCSIFNETMASK  	0x891C
+%define	SIOCGIFMETRIC   	0x891D
+%define	SIOCSIFMETRIC   	0x891E
+%define	SIOCGIFMEM      	0x891F
+%define	SIOCSIFMEM      	0x8920
+%define	SIOCGIFMTU      	0x8921
+%define	SIOCSIFMTU      	0x8922
+%define	SIOCSIFNAME    		0x8923
+%define	SIOCSIFHWADDR   	0x8924
+%define	SIOCGIFENCAP    	0x8925
+%define	SIOCSIFENCAP    	0x8926
+%define	SIOCGIFHWADDR   	0x8927
+%define	SIOCGIFSLAVE    	0x8929
+%define	SIOCSIFSLAVE    	0x8930
+%define	SIOCADDMULTI    	0x8931
+%define	SIOCDELMULTI    	0x8932
+%define	SIOCGIFINDEX    	0x8933
+%define	SIOCSIFPFLAGS   	0x8934
+%define	SIOCGIFPFLAGS  		0x8935
+%define	SIOCDIFADDR     	0x8936
+%define	SIOCSIFHWBROADCAST      0x8937
+%define	SIOCGIFCOUNT    	0x8938
+%define	TUNSETNOCSUM		1074025672
+%define	TUNSETDEBUG		1074025673
+%define	TUNSETIFF		1074025674
+%define	TUNSETPERSIST		1074025675
+%define	TUNSETOWNER		1074025676
+%define	TUNSETLINK		1074025677
+%define	TUNSETGROUP		1074025678
+%define	TUNGETFEATURES		-2147199793
+%define	TUNSETOFFLOAD		1074025680
+%define	TUNSETTXFILTER		1074025681
+%define	TUNGETIFF		-2147199790
+%define	TUNGETSNDBUF		-2147199789
+%define	TUNSETSNDBUF		1074025684
+%define	TUNATTACHFILTER		1074812117
+%define	TUNDETACHFILTER		1074812118
+%define	TUNGETVNETHDRSZ		-2147199785
+%define	TUNSETVNETHDRSZ		1074025688
+%define	TUNSETQUEUE		1074025689
+%define	TUNSETIFINDEX		1074025690
+%define	TUNGETFILTER		-2146413349
+%define	TUNSETVNETLE		1074025692
+%define	TUNGETVNETLE		-2147199779
+%define	TUNSETVNETBE		1074025694
+%define	TUNGETVNETBE		-2147199777
+%define	TUNSETSTEERINGEBPF	-2147199776
+%define	TUNSETFILTEREBPF	-2147199775
+%define	TUNSETCARRIER		1074025698
+%define	TUNGETDEVNETNS		21731
 section		.data
-	IFNAMSIZ		equ 16
-	IFRSZ			equ 40
-	RTENTSZ			equ 120
 	ifr:
 		ifr_name		times IFNAMSIZ db 0
 		ifr_ifru		times IFRSZ-IFNAMSIZ db 0
@@ -28,82 +98,13 @@ section		.data
 	errmsg			db "An error occurred!", 0x0A
 	ERRMSGSZ		equ $-errmsg
 	tunfpath		db "/dev/net/tun", 0x00
-	tunaddr			db 10, 16, 0, 1
+	tunaddr			db 192, 168, 0, 224
 	TUNADDRSZ		equ $-tunaddr
+	tungw			db 192, 168, 0, 224
 	tunnetmask		db 255, 255, 255, 0
+	rtmask			db 0, 0, 0, 0
 	tuntitle		db "tun8", 0x00
-	AF_INET			equ 2
-	AF_INET6		equ 10
-	SOCK_STREAM		equ 1
-	SOCK_DGRAM		equ 2
-	SOCK_RAW		equ 3
-	IFF_TUN			equ 0x0001
-	INADDR_ANY		equ 0x00000000
-	SIOCADDRT		equ 0x890B
-	SIOCDELRT		equ 0x890C
-	SIOCRTMSG		equ 0x890D
-	SIOCGIFNAME		equ 0x8910
-	SIOCSIFLINK		equ 0x8911
-	SIOCGIFCONF		equ 0x8912
-	SIOCGIFFLAGS    	equ 0x8913
-	SIOCSIFFLAGS    	equ 0x8914
-	SIOCGIFADDR     	equ 0x8915
-	SIOCSIFADDR     	equ 0x8916
-	SIOCGIFDSTADDR  	equ 0x8917
-	SIOCSIFDSTADDR  	equ 0x8918
-	SIOCGIFBRDADDR  	equ 0x8919
-	SIOCSIFBRDADDR  	equ 0x891A
-	SIOCGIFNETMASK  	equ 0x891B
-	SIOCSIFNETMASK  	equ 0x891C
-	SIOCGIFMETRIC   	equ 0x891D
-	SIOCSIFMETRIC   	equ 0x891E
-	SIOCGIFMEM      	equ 0x891F
-	SIOCSIFMEM      	equ 0x8920
-	SIOCGIFMTU      	equ 0x8921
-	SIOCSIFMTU      	equ 0x8922
-	SIOCSIFNAME     	equ 0x8923
-	SIOCSIFHWADDR   	equ 0x8924
-	SIOCGIFENCAP    	equ 0x8925
-	SIOCSIFENCAP    	equ 0x8926
-	SIOCGIFHWADDR   	equ 0x8927
-	SIOCGIFSLAVE    	equ 0x8929
-	SIOCSIFSLAVE    	equ 0x8930
-	SIOCADDMULTI    	equ 0x8931
-	SIOCDELMULTI    	equ 0x8932
-	SIOCGIFINDEX    	equ 0x8933
-	SIOCSIFPFLAGS   	equ 0x8934
-	SIOCGIFPFLAGS   	equ 0x8935
-	SIOCDIFADDR     	equ 0x8936
-	SIOCSIFHWBROADCAST      equ 0x8937
-	SIOCGIFCOUNT    	equ 0x8938
-	TUNSETNOCSUM		equ 1074025672
-	TUNSETDEBUG		equ 1074025673
-	TUNSETIFF		equ 1074025674
-	TUNSETPERSIST		equ 1074025675
-	TUNSETOWNER		equ 1074025676
-	TUNSETLINK		equ 1074025677
-	TUNSETGROUP		equ 1074025678
-	TUNGETFEATURES		equ -2147199793
-	TUNSETOFFLOAD		equ 1074025680
-	TUNSETTXFILTER		equ 1074025681
-	TUNGETIFF		equ -2147199790
-	TUNGETSNDBUF		equ -2147199789
-	TUNSETSNDBUF		equ 1074025684
-	TUNATTACHFILTER		equ 1074812117
-	TUNDETACHFILTER		equ 1074812118
-	TUNGETVNETHDRSZ		equ -2147199785
-	TUNSETVNETHDRSZ		equ 1074025688
-	TUNSETQUEUE		equ 1074025689
-	TUNSETIFINDEX		equ 1074025690
-	TUNGETFILTER		equ -2146413349
-	TUNSETVNETLE		equ 1074025692
-	TUNGETVNETLE		equ -2147199779
-	TUNSETVNETBE		equ 1074025694
-	TUNGETVNETBE		equ -2147199777
-	TUNSETSTEERINGEBPF	equ -2147199776
-	TUNSETFILTEREBPF	equ -2147199775
-	TUNSETCARRIER		equ 1074025698
-	TUNGETDEVNETNS		equ 21731
+
 section		.bss
 	tunfd		resb 1
 	sockfd		resb 1
@@ -146,7 +147,7 @@ zero_ifr:
 	pop	rbp
 	ret
 bring_up_tun:
-	;bring up new tun interface
+	; bring up new tun interface
 	push	rbp
 	mov	rbp, rsp
 	xor	rax, rax
@@ -223,7 +224,7 @@ bring_up_tun:
 	pop	rbp
 	ret
 set_routes:
-	;perform a call to SIOCADDRT, routing all network traffic through the tunnel
+	; perform a call to SIOCADDRT, routing all network traffic through the tunnel
 	push	rbp
 	mov	rbp, rsp
 	xor	rax, rax
@@ -235,7 +236,7 @@ set_routes:
 	mov	word [rt_dst], AF_INET
 	mov	word [rt_gateway], AF_INET
 	mov	word [rt_genmask], AF_INET
-	mov	eax, tunaddr
+	mov	eax, tungw
 	mov	ebx, rt_gateway+4
 	mov	ecx, TUNADDRSZ
 .loop:
@@ -247,7 +248,7 @@ set_routes:
 	jz	.close
 	jmp	.loop
 .close:
-	mov	eax, tunnetmask
+	mov	eax, rtmask
 	mov	ebx, rt_genmask+4
 	mov	ecx, TUNADDRSZ
 .loop2:
@@ -273,7 +274,7 @@ set_routes:
 	pop	rbp
 	ret
 _start:
-	;get the tun fd and sock fd
+	; get the tun fd and sock fd
 	mov	al, 2
 	mov	edi, tunfpath
 	mov	sil, 02
@@ -290,11 +291,20 @@ _start:
 	mov	[sockfd], al
 	call 	bring_up_tun
 	call	set_routes
-	;suspend program execution to check results
+	; suspend program execution to check results
 	xor	rax, rax
 	xor	rdi, rdi
 	mov	rsi, tuntitle
 	mov	rdx, 10
+	syscall
+	; close the previously opened file descriptors
+	mov	al, 3
+	mov	dil, [tunfd]
+	xor	rsi, rsi
+	xor	rdx, rdx
+	syscall
+	mov	al, 3
+	mov	dil, [sockfd]
 	syscall
 	jmp	exit
 error:

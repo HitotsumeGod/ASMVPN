@@ -1,37 +1,32 @@
-CC=gcc
 AS=nasm
 LD=ld
 DBG=gdb
 DIS=objdump
-CPY=objcopy
 X=xxd
 GR=grep
 SRC=src
+DEPS=$(SRC)/include
 UTILS=$(SRC)/utils
 BUILD=build
-PROG=$(BUILD)/ab
-OBJ=$(BUILD)/vpn.o
-SRS=$(SRC)/vpn.s
 
-$(PROG): $(OBJ)
-	$(LD) -o $@ $^ 
-$(OBJ): $(SRS) $(BUILD)
-	$(AS) -f elf64 -o $@ $<
+all: client server
+client: $(BUILD)/cab
+server: $(BUILD)/sab
+$(BUILD)/cab: $(SRC)/vpnclient.asm $(BUILD)
+	$(AS) -f elf64 -o $(BUILD)/vpnclient.o $< -i $(DEPS)
+	$(LD) -o $@ $(BUILD)/vpnclient.o
+$(BUILD)/sab: $(SRC)/vpnserver.asm $(BUILD)
+	$(AS) -f elf64 -o $(BUILD)/vpnserver.o $< -i $(DEPS)
+	$(LD) -o $@ $(BUILD)/vpnserver.o
+debug: $(BUILD)/cab $(BUILD)
+	$(DBG) $<
+dump: $(BUILD)/cab
+	$(DIS) -d $< 
+bdump: $(BUILD)/cab
+	$(X) -b $< | $(GR) -v "00000000 00000000 00000000 00000000 00000000 00000000" 
+clean:
+	rm -rf $(BUILD)
 $(BUILD):
 	if ! [ -d $(BUILD) ]; then		\
 		mkdir $(BUILD);			\
 	fi
-tuns: $(UTILS)/tuns.c
-	$(CC) -S -o $@.s $< -masm=intel -fno-asynchronous-unwind-tables
-debug: $(SRS) $(BUILD)
-	$(AS) -f elf64 -o $(OBJ) $< -g
-	$(LD) -o $(PROG) $(OBJ)
-	$(DBG) $(PROG)
-dump: $(PROG)
-	$(DIS) -d $< 
-bdump: $(PROG)
-	$(CPY) -j .text $^ $(BUILD)/text.bin
-	$(X) -b $(BUILD)/text.bin | $(GR) -v "00000000 00000000 00000000 00000000 00000000 00000000" 
-clean:
-	rm -rf $(BUILD)
-	rm -rf *.s
